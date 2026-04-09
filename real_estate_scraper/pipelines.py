@@ -21,9 +21,15 @@ class PostgresPipeline:
         self.cursor = None
 
         # Keep DB writes optional for local crawling.
-        use_postgres = os.getenv("SCRAPER_USE_POSTGRES", "0").strip().lower() in {"1", "true", "yes"}
+        use_postgres = os.getenv("SCRAPER_USE_POSTGRES", "0").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+        }
         if not use_postgres:
-            spider.logger.info("Postgres pipeline is disabled. Set SCRAPER_USE_POSTGRES=1 to enable DB writes.")
+            spider.logger.info(
+                "Postgres pipeline is disabled. Set SCRAPER_USE_POSTGRES=1 to enable DB writes."
+            )
             return
 
         try:
@@ -31,12 +37,13 @@ class PostgresPipeline:
                 host=os.getenv("DB_HOST"),
                 user=os.getenv("DB_USER"),
                 password=os.getenv("DB_PASSWORD"),
-                database=os.getenv("DB_NAME")
+                database=os.getenv("DB_NAME"),
             )
             self.cursor = self.connection.cursor()
 
             # Create table if it doesn't exist
-            self.cursor.execute("""
+            self.cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS real_estate (
                     id SERIAL PRIMARY KEY,
                     price TEXT,
@@ -47,10 +54,13 @@ class PostgresPipeline:
                     amenities TEXT[],
                     listing_url TEXT
                 )
-            """)
+            """
+            )
             self.connection.commit()
         except psycopg2.Error as e:
-            spider.logger.error(f"Could not connect to PostgreSQL. Continuing without DB writes: {e}")
+            spider.logger.error(
+                f"Could not connect to PostgreSQL. Continuing without DB writes: {e}"
+            )
             self.connection = None
             self.cursor = None
 
@@ -60,18 +70,21 @@ class PostgresPipeline:
             return item
 
         try:
-            self.cursor.execute("""
+            self.cursor.execute(
+                """
                 INSERT INTO real_estate (price, city, address, property_size, property_type, amenities, listing_url)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (
-                item.get("price"),
-                item.get("city"),
-                item.get("address"),
-                item.get("property_size"),
-                item.get("property_type"),
-                item.get("amenities"),
-                item.get("listing_url")
-            ))
+            """,
+                (
+                    item.get("price"),
+                    item.get("city"),
+                    item.get("address"),
+                    item.get("property_size"),
+                    item.get("property_type"),
+                    item.get("amenities"),
+                    item.get("listing_url"),
+                ),
+            )
 
             self.connection.commit()
         except psycopg2.Error as e:

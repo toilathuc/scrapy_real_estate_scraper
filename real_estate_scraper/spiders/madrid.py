@@ -32,15 +32,17 @@ class MadridSpider(scrapy.Spider):
             yield scrapy.Request(
                 url=url,
                 callback=self.parse,
-                meta=self._playwright_meta('div.item-data > a')
+                meta=self._playwright_meta("div.item-data > a"),
             )
 
     def parse(self, response: Response, **kwargs: Any):
         if response.status == 200:
-            self.log(f'Request was successful! Crawled so far: {self.crawled_count}/{self.max_results}')
+            self.log(
+                f"Request was successful! Crawled so far: {self.crawled_count}/{self.max_results}"
+            )
 
             base_url = "https://www.properstar.com"
-            property_links = response.css('div.item-data > a::attr(href)').getall()
+            property_links = response.css("div.item-data > a::attr(href)").getall()
 
             if not property_links:
                 self.log("No properties found, possible selector issue!")
@@ -50,7 +52,7 @@ class MadridSpider(scrapy.Spider):
             if self.check:
                 self.log("Running health check mode: Making only one request.")
                 test_url = base_url + property_links[0]
-                meta = self._playwright_meta('.listing-price-main > span')
+                meta = self._playwright_meta(".listing-price-main > span")
                 meta["check"] = True
                 yield scrapy.Request(test_url, callback=self.parse_property, meta=meta)
                 return  # Stops further execution in check mode
@@ -66,11 +68,11 @@ class MadridSpider(scrapy.Spider):
                 yield response.follow(
                     full_url,
                     self.parse_property,
-                    meta=self._playwright_meta('.listing-price-main > span')
+                    meta=self._playwright_meta(".listing-price-main > span"),
                 )
 
             # Handle pagination
-            next_page = response.css('ul > li.page-link.next > a::attr(href)').get()
+            next_page = response.css("ul > li.page-link.next > a::attr(href)").get()
             if next_page and self.crawled_count < self.max_results:
                 next_page_url = base_url + next_page
 
@@ -78,7 +80,7 @@ class MadridSpider(scrapy.Spider):
                 yield scrapy.Request(
                     url=next_page_url,
                     callback=self.parse,
-                    meta=self._playwright_meta('div.item-data > a')
+                    meta=self._playwright_meta("div.item-data > a"),
                 )
             else:
                 self.log("No more pages or max limit reached, stopping.")
@@ -87,17 +89,20 @@ class MadridSpider(scrapy.Spider):
 
     def parse_property(self, response: Response):
         """Extract data for individual property pages."""
-        current_city = 'Madrid'
-        address = response.css('.address > span::text').get(default='N/A')
+        current_city = "Madrid"
+        address = response.css(".address > span::text").get(default="N/A")
         if response.meta.get("check"):
             # Health check mode
             self.log("Running health check on property detail page...")
 
             # Perform basic checks for presence of essential selectors
-            price = response.css('.listing-price-main > span::text').get()
+            price = response.css(".listing-price-main > span::text").get()
             property_size = response.css(
-                'div:nth-child(4) > div > div > span.property-value::text').get()
-            property_type = response.css('ol > li.active.breadcrumb-item > a::text').get()
+                "div:nth-child(4) > div > div > span.property-value::text"
+            ).get()
+            property_type = response.css(
+                "ol > li.active.breadcrumb-item > a::text"
+            ).get()
 
             missing_fields = []
             if not price:
@@ -119,13 +124,16 @@ class MadridSpider(scrapy.Spider):
         loader = ItemLoader(item=PropertyItem(), response=response)
 
         # Extract data fields
-        loader.add_css("price", '.listing-price-main > span::text')
+        loader.add_css("price", ".listing-price-main > span::text")
         loader.add_value("city", current_city)
-        loader.add_value('address', address)
-        loader.add_css("property_size", 'div:nth-child(4) > div > div > span.property-value::text')
-        loader.add_css("property_type", 'ol > li.active.breadcrumb-item > a::text')
+        loader.add_value("address", address)
+        loader.add_css(
+            "property_size", "div:nth-child(4) > div > div > span.property-value::text"
+        )
+        loader.add_css("property_type", "ol > li.active.breadcrumb-item > a::text")
         amenities = response.css(
-            "#app section.listing-section.amenities-section div.feature-list div.feature-item div.feature-content span.property-value::text").getall()
+            "#app section.listing-section.amenities-section div.feature-list div.feature-item div.feature-content span.property-value::text"
+        ).getall()
         loader.add_value("amenities", amenities)
         loader.add_value("listing_url", response.url)
 

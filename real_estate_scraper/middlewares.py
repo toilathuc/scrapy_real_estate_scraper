@@ -129,7 +129,11 @@ class MadridProxyRotationMiddleware:
             parsed = urlparse(selected_proxy)
             if parsed.scheme and parsed.hostname:
                 proxy_config = {
-                    "server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}" if parsed.port else f"{parsed.scheme}://{parsed.hostname}"
+                    "server": (
+                        f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
+                        if parsed.port
+                        else f"{parsed.scheme}://{parsed.hostname}"
+                    )
                 }
                 if parsed.username:
                     proxy_config["username"] = parsed.username

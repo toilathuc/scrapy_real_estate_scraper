@@ -116,22 +116,30 @@ AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 
 
 DATABASE = {
-    'drivername': 'postgresql',
-    'host': os.getenv("DB_HOST"),
-    'port': os.getenv("DB_PORT"),
-    'username': os.getenv("DB_USER"),
-    'password': os.getenv("DB_PASSWORD"),
-    'database': os.getenv("DB_NAME")
+    "drivername": "postgresql",
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT"),
+    "username": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "database": os.getenv("DB_NAME"),
 }
 
 # Set settings whose default value is deprecated to a future-proof value
 FEEDS = {
-    'output/%(name)s.csv': {
-        'format': 'csv',
-        'encoding': 'utf8',
-        'store_empty': False,
-        'fields': ['price', 'city', 'address', 'property_size', 'property_type', 'amenities',
-                   'listing_url', 'page'],
+    "output/%(name)s.csv": {
+        "format": "csv",
+        "encoding": "utf8",
+        "store_empty": False,
+        "fields": [
+            "price",
+            "city",
+            "address",
+            "property_size",
+            "property_type",
+            "amenities",
+            "listing_url",
+            "page",
+        ],
     },
 }
 

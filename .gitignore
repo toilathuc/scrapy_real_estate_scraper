@@ -1,10 +1,13 @@
-# Python cache
+# Python bytecode and caches
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
+.mypy_cache/
 
 # Virtual environments
 .venv/
+.venv312/
 venv/
 env/
 
@@ -12,13 +15,22 @@ env/
 .env
 .env.*
 
-# Scrapy outputs
+# Project outputs and runtime artifacts
 output/
-output.csv
+real_estate_scraper/output/
+*.csv
 *.log
+*.tmp
+*.bak
 
-# OS / editor
+# Coverage and reports
+.coverage
+coverage.xml
+htmlcov/
+
+# OS and editor files
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+
