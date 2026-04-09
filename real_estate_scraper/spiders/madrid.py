@@ -2,6 +2,7 @@ from typing import Any
 import scrapy
 from scrapy.http import Response
 from scrapy.loader import ItemLoader
+from scrapy_playwright.page import PageMethod
 from ..items import PropertyItem
 
 
@@ -15,6 +16,24 @@ class MadridSpider(scrapy.Spider):
         """Initialize the spider with a 'check' mode."""
         super().__init__(*args, **kwargs)
         self.check = check  # Flag to determine if it's a health check run
+
+    @staticmethod
+    def _playwright_meta(wait_selector):
+        return {
+            "playwright": True,
+            "playwright_page_methods": [
+                PageMethod("wait_for_load_state", "networkidle"),
+                PageMethod("wait_for_selector", wait_selector, timeout=20000),
+            ],
+        }
+
+    def start_requests(self):
+        for url in self.start_urls:
+            yield scrapy.Request(
+                url=url,
+                callback=self.parse,
+                meta=self._playwright_meta('div.item-data > a')
+            )
 
     def parse(self, response: Response, **kwargs: Any):
         if response.status == 200:
@@ -31,7 +50,9 @@ class MadridSpider(scrapy.Spider):
             if self.check:
                 self.log("Running health check mode: Making only one request.")
                 test_url = base_url + property_links[0]
-                yield scrapy.Request(test_url, callback=self.parse_property, meta={"check": True})
+                meta = self._playwright_meta('.listing-price-main > span')
+                meta["check"] = True
+                yield scrapy.Request(test_url, callback=self.parse_property, meta=meta)
                 return  # Stops further execution in check mode
 
             for link in property_links:
@@ -42,7 +63,11 @@ class MadridSpider(scrapy.Spider):
 
                 full_url = base_url + link
                 self.crawled_count += 1
-                yield response.follow(full_url, self.parse_property)
+                yield response.follow(
+                    full_url,
+                    self.parse_property,
+                    meta=self._playwright_meta('.listing-price-main > span')
+                )
 
             # Handle pagination
             next_page = response.css('ul > li.page-link.next > a::attr(href)').get()
@@ -50,7 +75,11 @@ class MadridSpider(scrapy.Spider):
                 next_page_url = base_url + next_page
 
                 self.log(f"Next page URL: {next_page_url}")
-                yield scrapy.Request(url=next_page_url, callback=self.parse)
+                yield scrapy.Request(
+                    url=next_page_url,
+                    callback=self.parse,
+                    meta=self._playwright_meta('div.item-data > a')
+                )
             else:
                 self.log("No more pages or max limit reached, stopping.")
         else:

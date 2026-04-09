@@ -1,5 +1,9 @@
 import scrapy
-from scrapy.loader.processors import MapCompose, TakeFirst
+try:
+    from itemloaders.processors import MapCompose, TakeFirst
+except ImportError:
+    # Backward compatibility with older Scrapy versions.
+    from scrapy.loader.processors import MapCompose, TakeFirst
 import re
 
 

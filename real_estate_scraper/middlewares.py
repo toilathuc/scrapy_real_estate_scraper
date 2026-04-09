@@ -4,6 +4,9 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 from scrapy import signals
+import os
+import random
+from urllib.parse import urlparse
 
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
@@ -101,3 +104,40 @@ class RealEstateScraperDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+
+
+class MadridProxyRotationMiddleware:
+    """Rotate proxies for Madrid spider requests using MADRID_PROXY_POOL env var."""
+
+    def __init__(self, proxy_pool):
+        self.proxy_pool = proxy_pool
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        raw_pool = os.getenv("MADRID_PROXY_POOL", "")
+        proxy_pool = [p.strip() for p in raw_pool.split(",") if p.strip()]
+        return cls(proxy_pool)
+
+    def process_request(self, request, spider):
+        if spider.name != "madrid" or not self.proxy_pool:
+            return None
+
+        selected_proxy = random.choice(self.proxy_pool)
+        request.meta["proxy"] = selected_proxy
+
+        if request.meta.get("playwright"):
+            parsed = urlparse(selected_proxy)
+            if parsed.scheme and parsed.hostname:
+                proxy_config = {
+                    "server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}" if parsed.port else f"{parsed.scheme}://{parsed.hostname}"
+                }
+                if parsed.username:
+                    proxy_config["username"] = parsed.username
+                if parsed.password:
+                    proxy_config["password"] = parsed.password
+
+                context_kwargs = request.meta.get("playwright_context_kwargs", {})
+                context_kwargs["proxy"] = proxy_config
+                request.meta["playwright_context_kwargs"] = context_kwargs
+
+        return None

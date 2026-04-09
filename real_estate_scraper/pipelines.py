@@ -17,31 +17,48 @@ load_dotenv()
 class PostgresPipeline:
     def open_spider(self, spider):
         """Connect to the PostgreSQL database when the spider starts."""
-        self.connection = psycopg2.connect(
-            host=os.getenv("DB_HOST"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_NAME")
-        )
-        self.cursor = self.connection.cursor()
+        self.connection = None
+        self.cursor = None
 
-        # Create table if it doesn't exist
-        self.cursor.execute("""
-            CREATE TABLE IF NOT EXISTS real_estate (
-                id SERIAL PRIMARY KEY,
-                price TEXT,
-                city TEXT,
-                address TEXT,
-                property_size TEXT,
-                property_type TEXT,
-                amenities TEXT[],
-                listing_url TEXT
+        # Keep DB writes optional for local crawling.
+        use_postgres = os.getenv("SCRAPER_USE_POSTGRES", "0").strip().lower() in {"1", "true", "yes"}
+        if not use_postgres:
+            spider.logger.info("Postgres pipeline is disabled. Set SCRAPER_USE_POSTGRES=1 to enable DB writes.")
+            return
+
+        try:
+            self.connection = psycopg2.connect(
+                host=os.getenv("DB_HOST"),
+                user=os.getenv("DB_USER"),
+                password=os.getenv("DB_PASSWORD"),
+                database=os.getenv("DB_NAME")
             )
-        """)
-        self.connection.commit()
+            self.cursor = self.connection.cursor()
+
+            # Create table if it doesn't exist
+            self.cursor.execute("""
+                CREATE TABLE IF NOT EXISTS real_estate (
+                    id SERIAL PRIMARY KEY,
+                    price TEXT,
+                    city TEXT,
+                    address TEXT,
+                    property_size TEXT,
+                    property_type TEXT,
+                    amenities TEXT[],
+                    listing_url TEXT
+                )
+            """)
+            self.connection.commit()
+        except psycopg2.Error as e:
+            spider.logger.error(f"Could not connect to PostgreSQL. Continuing without DB writes: {e}")
+            self.connection = None
+            self.cursor = None
 
     def process_item(self, item, spider):
         """Insert data into the database."""
+        if not self.cursor:
+            return item
+
         try:
             self.cursor.execute("""
                 INSERT INTO real_estate (price, city, address, property_size, property_type, amenities, listing_url)
@@ -65,8 +82,10 @@ class PostgresPipeline:
 
     def close_spider(self, spider):
         """Close database connection when spider finishes."""
-        self.cursor.close()
-        self.connection.close()
+        if self.cursor:
+            self.cursor.close()
+        if self.connection:
+            self.connection.close()
 
 
 class RealEstateScraperPipeline:
