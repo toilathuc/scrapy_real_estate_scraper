@@ -1,0 +1,10 @@
+{
+  "runs": {
+    "https://batdongsan.com.vn/nha-dat-ban-cau-giay|E:\\Viscode\\real state\\scrapy_real_estate_scraper\\real_estate_scraper\\output\\caugiay_quick_test.csv": {
+      "start_url": "https://batdongsan.com.vn/nha-dat-ban-cau-giay",
+      "output_file": "E:\\Viscode\\real state\\scrapy_real_estate_scraper\\real_estate_scraper\\output\\caugiay_quick_test.csv",
+      "next_page": 3,
+      "updated_at": "2026-04-10T01:26:12Z"
+    }
+  }
+}
